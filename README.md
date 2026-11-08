@@ -26,7 +26,7 @@ flowchart LR
 ## Measured results
 
 <!-- RESULTS:START -->
-Measured by [GitHub Actions](https://github.com/hamza2829/embedded-sensor-ai-lab/actions/runs/42526249710) on source commit `7bc986e1d9848cae7ae2609616eb4e3235fb89b6`.
+Measured by [GitHub Actions](https://github.com/hamza2829/embedded-sensor-ai-lab/actions/runs/42526406283) on source commit `853dd06782e5d837d6d95be8068793260b1f4658`.
 
 **50 tests passed**: 14 CTest cases and 36 pytest cases; none skipped.
 
@@ -36,10 +36,10 @@ The fault bench detected dropped frames, bad CRC, stuck sensor, and spikes, with
 
 | ONNX model | File bytes | Median latency | p95 latency | Precision | Recall | F1 | ROC AUC |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| float | 10686 | 5.849 us | 6.069 us | 0.9978 | 0.9014 | 0.9472 | 0.9719 |
-| int8 | 11159 | 8.312 us | 8.693 us | 0.9979 | 0.9082 | 0.9509 | 0.9718 |
+| float | 10686 | 3.946 us | 4.046 us | 0.9978 | 0.9014 | 0.9472 | 0.9719 |
+| int8 | 11159 | 5.889 us | 5.979 us | 0.9979 | 0.9082 | 0.9509 | 0.9718 |
 
-Int8/float size ratio: **1.044**. Int8/float median latency ratio: **1.421** (above 1 means slower). Training took **0.80 s** on this hosted CPU.
+Int8/float size ratio: **1.044**. Int8/float median latency ratio: **1.492** (above 1 means slower). Training took **0.57 s** on this hosted CPU.
 
 Evaluation: **1280 feature windows** from separate seeded runs. Both models use the same float-calibrated threshold `0.396737`. Quantization caused **1 newly wrong decisions** and **8 newly correct decisions**; **9 total disagreements**.
 

@@ -1,7 +1,7 @@
 coloredlogs==15.0.1
 contourpy==1.3.3
 cycler==0.12.1
--e git+https://github.com/hamza2829/embedded-sensor-ai-lab@7bc986e1d9848cae7ae2609616eb4e3235fb89b6#egg=embedded_sensor_ai_lab
+-e git+https://github.com/hamza2829/embedded-sensor-ai-lab@853dd06782e5d837d6d95be8068793260b1f4658#egg=embedded_sensor_ai_lab
 filelock==4.2.4
 flatbuffers==25.12.19
 fonttools==4.68.0

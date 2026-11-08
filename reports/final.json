@@ -1,6 +1,6 @@
 {
-  "workflow_url": "https://github.com/hamza2829/embedded-sensor-ai-lab/actions/runs/42526249710",
-  "source_commit": "7bc986e1d9848cae7ae2609616eb4e3235fb89b6",
+  "workflow_url": "https://github.com/hamza2829/embedded-sensor-ai-lab/actions/runs/42526406283",
+  "source_commit": "853dd06782e5d837d6d95be8068793260b1f4658",
   "tests": {
     "c": {
       "tests": 14,
@@ -477,7 +477,7 @@
           "validation_loss": 0.08942318707704544
         }
       ],
-      "seconds": 0.7976605610000007
+      "seconds": 0.5737424219999951
     },
     "parameter_count": 2192,
     "input_path": "C11 DAQ CSV, cleaned and resampled",
@@ -550,8 +550,8 @@
       "float": {
         "bytes": 10686,
         "latency": {
-          "median_us": 5.849,
-          "p95_us": 6.069,
+          "median_us": 3.946,
+          "p95_us": 4.046,
           "samples": 3500,
           "batch_size": 1,
           "warmup": 50
@@ -593,8 +593,8 @@
       "int8": {
         "bytes": 11159,
         "latency": {
-          "median_us": 8.312,
-          "p95_us": 8.693499999999997,
+          "median_us": 5.889,
+          "p95_us": 5.979,
           "samples": 3500,
           "batch_size": 1,
           "warmup": 50
