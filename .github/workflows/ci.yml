@@ -1,0 +1,141 @@
+name: Embedded sensor AI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sensor-ai-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  PYTHONHASHSEED: '0'
+  MPLBACKEND: Agg
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install ruff==0.11.13
+      - run: ruff check .
+      - name: Install cppcheck on the runner
+        run: |
+          if ! command -v cppcheck; then
+            sudo apt-get update
+            sudo apt-get install -y cppcheck
+          fi
+      - run: >-
+          cppcheck --enable=warning,style,performance,portability --error-exitcode=1
+          --std=c11 --suppress=missingIncludeSystem -Isrc/daq src/daq
+      - name: Reject em dash characters
+        run: |
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          for name in subprocess.check_output(['git', 'ls-files'], text=True).splitlines():
+              assert '\u2014' not in Path(name).read_text(), f'em dash in {name}'
+          PY
+
+  c-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install gcovr==7.2
+      - run: cmake -S . -B build -DENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 2
+      - run: mkdir -p artifacts
+      - run: ctest --test-dir build --output-on-failure --output-junit ../artifacts/c-junit.xml
+      - run: >-
+          gcovr --root . --filter 'src/daq/' --json-summary artifacts/c-coverage.json
+          --html-details artifacts/c-coverage.html --fail-under-line 85 --fail-under-branch 70
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: c-results
+          path: artifacts/
+
+  python-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e '.[dev]'
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --parallel 2
+      - run: >-
+          pytest --cov --cov-report=term-missing --cov-report=json:artifacts/python-coverage.json
+          --cov-report=html:artifacts/python-htmlcov --junitxml=artifacts/python-junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-results
+          path: artifacts/
+
+  measurement-model:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e .
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --parallel 2
+      - run: sensor-ai-lab bench --daq build/src/daq/daq --output artifacts/measurements
+      - run: sensor-ai-lab train-export --output artifacts/model --epochs 60
+      - run: python -m pip freeze > artifacts/environment.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: measurement-results
+          path: artifacts/
+
+  publish-results:
+    needs: [lint, c-tests, python-tests, measurement-model]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-results'
+          merge-multiple: true
+          path: artifacts
+      - run: python scripts/publish_results.py
+      - name: Commit measured results
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md reports
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update measured CI results'
+            git push
+          fi
