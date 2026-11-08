@@ -26,7 +26,42 @@ flowchart LR
 ## Measured results
 
 <!-- RESULTS:START -->
-Measurements are pending the first green GitHub Actions run. No numbers are claimed yet.
+Measured by [GitHub Actions](https://github.com/hamza2829/embedded-sensor-ai-lab/actions/runs/42526249710) on source commit `7bc986e1d9848cae7ae2609616eb4e3235fb89b6`.
+
+**50 tests passed**: 14 CTest cases and 36 pytest cases; none skipped.
+
+Python statement and branch coverage: **98.51%**. C line coverage: **99.00%**; C branch coverage: **88.50%**.
+
+The fault bench detected dropped frames, bad CRC, stuck sensor, and spikes, with no alerts on its clean control.
+
+| ONNX model | File bytes | Median latency | p95 latency | Precision | Recall | F1 | ROC AUC |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| float | 10686 | 5.849 us | 6.069 us | 0.9978 | 0.9014 | 0.9472 | 0.9719 |
+| int8 | 11159 | 8.312 us | 8.693 us | 0.9979 | 0.9082 | 0.9509 | 0.9718 |
+
+Int8/float size ratio: **1.044**. Int8/float median latency ratio: **1.421** (above 1 means slower). Training took **0.80 s** on this hosted CPU.
+
+Evaluation: **1280 feature windows** from separate seeded runs. Both models use the same float-calibrated threshold `0.396737`. Quantization caused **1 newly wrong decisions** and **8 newly correct decisions**; **9 total disagreements**.
+
+| Injected class | Float alarm rate | Int8 alarm rate |
+| :--- | ---: | ---: |
+| current_step | 78.12% | 80.86% |
+| normal | 0.78% | 0.78% |
+| spike | 82.42% | 82.42% |
+| stuck | 100.00% | 100.00% |
+| vibration_shift | 100.00% | 100.00% |
+
+For normal windows, alarm rate is the false positive rate. For fault windows, it is recall. Low amplitude faults may be missed by either model.
+
+Cases where int8 loses a correct float decision:
+
+- `current_step`, seed 22074, window 1: float score 0.416165, int8 score 0.395836.
+
+Timing measures batch-one ONNX inference only, with one thread, 50 warmups, and seven alternating rounds of 500 calls per model. It excludes feature extraction and acquisition. Hosted x86 timing is not a microcontroller measurement.
+
+Raw outcomes, confusion matrices, quantization details, seeds, and coverage are in [reports/final.json](reports/final.json). Per-run examples: [clean](reports/clean/measurement.md), [dropped frames](reports/dropped_frames/measurement.md), [bad CRC](reports/bad_crc/measurement.md), [stuck sensor](reports/stuck_sensor/measurement.md), and [spikes](reports/spikes/measurement.md). ONNX files, checkpoints, and coverage HTML are available in the workflow artifacts.
+
+This section and the reports are committed after all verification jobs pass. That generated report commit does not trigger a new run; the source commit above identifies the code measured.
 <!-- RESULTS:END -->
 
 ## Run

@@ -1,0 +1,40 @@
+{
+  "acquisition": {
+    "frames": 2048,
+    "accepted": 2045,
+    "bad_header": 0,
+    "bad_crc": 3,
+    "bad_values": 0,
+    "sequence_gaps": 3,
+    "out_of_order": 0,
+    "truncated_bytes": 0
+  },
+  "cleaning": {
+    "raw_rows": 2045,
+    "resampled_rows": 2048,
+    "invalid_values": 0,
+    "interpolated_rows": 3,
+    "sample_rate": 200
+  },
+  "alerts": {
+    "dropped_frames": true,
+    "bad_crc": true,
+    "stuck_sensor": false,
+    "spikes": false
+  },
+  "feature_windows": 16,
+  "mean_features": {
+    "temperature_mean": 24.251724243164062,
+    "temperature_std": 0.03037145361304283,
+    "temperature_rms": 24.25174331665039,
+    "temperature_peak_hz": 45.41015625,
+    "vibration_mean": -0.000621823885012418,
+    "vibration_std": 0.2881406247615814,
+    "vibration_rms": 0.2881650924682617,
+    "vibration_peak_hz": 25.0,
+    "current_mean": 1.9109207391738892,
+    "current_std": 0.05895722657442093,
+    "current_rms": 1.9118305444717407,
+    "current_peak_hz": 3.125
+  }
+}
