@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "embedded-sensor-ai-lab"
+version = "0.1.0"
+description = "Simulated sensor acquisition, measurement analysis, and quantized anomaly detection"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+  "numpy==2.2.6", "pandas==2.2.3", "scipy==1.15.2", "matplotlib==3.10.1",
+  "torch==2.6.0", "onnx==1.17.0", "onnxruntime==1.21.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.5", "pytest-cov==6.1.1", "ruff==0.11.13", "gcovr==7.2"]
+
+[project.scripts]
+sensor-ai-lab = "sensor_ai_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["sensor_ai_lab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.coverage.run]
+source = ["sensor_ai_lab"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 85
