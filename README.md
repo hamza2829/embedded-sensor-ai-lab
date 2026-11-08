@@ -160,7 +160,7 @@ a general anti-aliasing filter. The report's plots use matplotlib's headless Agg
 
 The autoencoder has 12 inputs and layers 12, 64, 4, 64, 12 with ReLU hidden activations.
 Training uses normal examples only, Adam at 0.003, one CPU thread, seed 42, and 60 epochs.
-Each seeded run has 256 samples and yields two independent non-overlapping windows.
+Each seeded run has 256 samples and yields two non-overlapping windows.
 Model inputs pass through the binary encoder, actual C collector, CSV reader, cleaning,
 and resampling before feature extraction. Runs are batched with continuous transport
 sequence IDs and timestamps while preserving window boundaries and original seed identities.

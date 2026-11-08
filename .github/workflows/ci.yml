@@ -46,7 +46,11 @@ jobs:
           import subprocess
           from pathlib import Path
           for name in subprocess.check_output(['git', 'ls-files'], text=True).splitlines():
-              assert '\u2014' not in Path(name).read_text(), f'em dash in {name}'
+              try:
+                  content = Path(name).read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              assert '\u2014' not in content, f'em dash in {name}'
           PY
 
   c-tests:
