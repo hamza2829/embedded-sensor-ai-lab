@@ -19,7 +19,8 @@ def acquire(daq: Path, payload: bytes, output: Path, pipe: bool = True) -> tuple
         binary = output / "frames.bin"
         binary.write_bytes(payload)
         source = str(binary)
-    command = [str(Path(daq).resolve()), "--input", source, "--output", str(log), "--stats", str(stats)]
+    command = [str(Path(daq).resolve()), "--input", source,
+               "--output", str(log), "--stats", str(stats)]
     subprocess.run(command, input=payload if pipe else None, check=True, capture_output=True)
     return log, stats
 
@@ -34,7 +35,8 @@ def run_bench(daq: Path, output: Path, seed: int = 123) -> dict:
     results = {}
     for name, faults in cases.items():
         frame = simulate(seed, faults=faults)
-        log, stats = acquire(daq, encode_stream(frame, faults), Path(output) / name, pipe=name != "clean")
+        log, stats = acquire(daq, encode_stream(frame, faults), Path(output) / name,
+                             pipe=name != "clean")
         alerts = detect_faults(pd.read_csv(log), json.loads(stats.read_text()))
         passed = not any(alerts.values()) if name == "clean" else alerts[name]
         results[name] = dict(passed=bool(passed), alerts=alerts,

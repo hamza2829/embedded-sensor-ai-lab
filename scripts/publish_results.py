@@ -29,24 +29,28 @@ model = json.loads((root / "model/comparison.json").read_text())
 assert bench["passed"] and model["training"]["final_loss"] < model["training"]["initial_loss"]
 url = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
 report = dict(workflow_url=url, source_commit=os.environ["GITHUB_SHA"], tests=tests,
-              python_coverage=python_coverage, c_coverage=c_coverage, fault_bench=bench, model=model)
+              python_coverage=python_coverage, c_coverage=c_coverage,
+              fault_bench=bench, model=model)
 (destination / "final.json").write_text(json.dumps(report, indent=2) + "\n")
 shutil.copyfile(root / "environment.txt", destination / "environment.txt")
 for name in ("clean", "dropped_frames", "bad_crc", "stuck_sensor", "spikes"):
-    shutil.copytree(root / "measurements" / name / "analysis", destination / name, dirs_exist_ok=True)
+    shutil.copytree(root / "measurements" / name / "analysis", destination / name,
+                    dirs_exist_ok=True)
 float_model, int8_model = model["models"]["float"], model["models"]["int8"]
 size_ratio = int8_model["bytes"] / float_model["bytes"]
 latency_ratio = int8_model["latency"]["median_us"] / float_model["latency"]["median_us"]
 lines = [
     f"Measured by [GitHub Actions]({url}) on source commit `{os.environ['GITHUB_SHA']}`.", "",
     f"**{tests['c']['tests'] + tests['python']['tests']} tests passed**: "
-    f"{tests['c']['tests']} CTest cases and {tests['python']['tests']} pytest cases; none skipped.", "",
+    f"{tests['c']['tests']} CTest cases and {tests['python']['tests']} pytest cases; "
+    "none skipped.", "",
     f"Python statement and branch coverage: **{python_coverage['percent_covered']:.2f}%**. "
     f"C line coverage: **{c_coverage['line_percent']:.2f}%**; "
     f"C branch coverage: **{c_coverage['branch_percent']:.2f}%**.", "",
     "The fault bench detected dropped frames, bad CRC, stuck sensor, and spikes, "
     "with no alerts on its clean control.", "",
-    "| ONNX model | File bytes | Median latency | p95 latency | Precision | Recall | F1 | ROC AUC |",
+    "| ONNX model | File bytes | Median latency | p95 latency | "
+    "Precision | Recall | F1 | ROC AUC |",
     "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
 ]
 for name, item in model["models"].items():
@@ -85,8 +89,10 @@ lines += [
     "and acquisition. Hosted x86 timing is not a microcontroller measurement.", "",
     "Raw outcomes, confusion matrices, quantization details, seeds, and coverage are in "
     "[reports/final.json](reports/final.json). Per-run examples: "
-    "[clean](reports/clean/measurement.md), [dropped frames](reports/dropped_frames/measurement.md), "
-    "[bad CRC](reports/bad_crc/measurement.md), [stuck sensor](reports/stuck_sensor/measurement.md), "
+    "[clean](reports/clean/measurement.md), "
+    "[dropped frames](reports/dropped_frames/measurement.md), "
+    "[bad CRC](reports/bad_crc/measurement.md), "
+    "[stuck sensor](reports/stuck_sensor/measurement.md), "
     "and [spikes](reports/spikes/measurement.md). ONNX files, checkpoints, and coverage HTML "
     "are available in the workflow artifacts.", "",
     "This section and the reports are committed after all verification jobs pass. "

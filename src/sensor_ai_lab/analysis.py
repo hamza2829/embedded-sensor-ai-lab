@@ -71,7 +71,8 @@ def features(frame: pd.DataFrame, window: int = 128, sample_rate: int = SAMPLE_R
         row = []
         for column in chunk.T:
             frequencies, spectrum = signal.periodogram(column, fs=sample_rate, detrend="linear")
-            peak = float(frequencies[1 + np.argmax(spectrum[1:])]) if np.std(column) > 1e-10 else 0.0
+            peak = (float(frequencies[1 + np.argmax(spectrum[1:])])
+                    if np.std(column) > 1e-10 else 0.0)
             row.extend([np.mean(column), np.std(column), np.sqrt(np.mean(column ** 2)), peak])
         results.append(row)
     return np.asarray(results, dtype=np.float32)

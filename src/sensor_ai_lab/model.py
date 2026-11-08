@@ -90,7 +90,8 @@ def train_autoencoder(training: np.ndarray, validation: np.ndarray, epochs: int 
 
 class Calibration(CalibrationDataReader):
     def __init__(self, inputs: np.ndarray):
-        self.batches = iter({"features": batch} for batch in np.array_split(inputs, min(32, len(inputs))))
+        batches = np.array_split(inputs, min(32, len(inputs)))
+        self.batches = iter({"features": batch} for batch in batches)
 
     def get_next(self):
         return next(self.batches, None)
@@ -197,7 +198,8 @@ def run_model_lab(output: Path, train_runs: int = 256, validation_runs: int = 64
             by_class[kind] = dict(rows=int(mask.sum()),
                                  alarm_rate=float(np.mean(values[name][mask] > threshold)))
         comparisons[name] = dict(bytes=path.stat().st_size, latency=measured_latency[name],
-                                 quality=metrics(labels, values[name], threshold), by_class=by_class)
+                                 quality=metrics(labels, values[name], threshold),
+                                 by_class=by_class)
     float_prediction, int8_prediction = values["float"] > threshold, values["int8"] > threshold
     losses = (float_prediction == labels) & (int8_prediction != labels)
     gains = (float_prediction != labels) & (int8_prediction == labels)
@@ -208,17 +210,19 @@ def run_model_lab(output: Path, train_runs: int = 256, validation_runs: int = 64
                 for index, row in enumerate(identities)]
     report = dict(
         training=training_report, parameter_count=sum(item.numel() for item in model.parameters()),
-        seed_ranges=dict(training=[0, train_runs - 1], validation=[10000, 10000 + validation_runs - 1],
-                         test_start_seeds=[20000, 21000, 22000, 23000, 24000], runs_per_class=test_runs),
+        seed_ranges=dict(training=[0, train_runs - 1],
+                         validation=[10000, 10000 + validation_runs - 1],
+                         test_start_seeds=[20000, 21000, 22000, 23000, 24000],
+                         runs_per_class=test_runs),
         feature_names=FEATURE_NAMES, mean=mean.tolist(), scale=scale.tolist(), threshold=threshold,
-        threshold_protocol="99th percentile of float scores on separate normal validation runs; shared",
-        quantization="static QDQ; signed int8 weights and activations; float inputs, outputs, biases",
+        threshold_protocol="shared 99th percentile of float scores on normal validation runs",
+        quantization="static QDQ; int8 weights and activations; float inputs, outputs, biases",
         int8_initializer_count=int8_tensors, onnx_parity_max_abs=parity, models=comparisons,
         int8_losses=int(losses.sum()), int8_gains=int(gains.sum()),
         decision_disagreements=int(np.sum(float_prediction != int8_prediction)),
         int8_loss_examples=[outcomes[index] for index in np.flatnonzero(losses)[:10]],
         outcomes=outcomes,
-        timing_protocol="CPUExecutionProvider; one thread; 7 alternating rounds; batch one; model only",
+        timing_protocol="CPU; one thread; 7 alternating rounds; batch one; model only",
     )
     (output / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
     torch.save(model.state_dict(), output / "autoencoder.pt")
