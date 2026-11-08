@@ -7,14 +7,16 @@ from pathlib import Path
 import numpy as np
 import onnx
 import onnxruntime as ort
+import pandas as pd
 import torch
 from onnxruntime.quantization import CalibrationDataReader, QuantFormat, QuantType, quantize_static
 from onnxruntime.quantization.shape_inference import quant_pre_process
 from scipy.stats import rankdata
 from torch import nn
 
-from sensor_ai_lab.analysis import FEATURE_NAMES, features
-from sensor_ai_lab.sensors import Fault, simulate
+from sensor_ai_lab.analysis import FEATURE_NAMES, clean_resample, features
+from sensor_ai_lab.bench import acquire
+from sensor_ai_lab.sensors import Fault, encode_stream, simulate
 
 
 class Autoencoder(nn.Module):
@@ -29,10 +31,11 @@ class Autoencoder(nn.Module):
         return self.network(inputs)
 
 
-def examples(start_seed: int, runs: int, kind: str = "normal") -> tuple[np.ndarray, list[dict]]:
+def examples(start_seed: int, runs: int, kind: str = "normal", daq: Path | None = None,
+             output: Path | None = None) -> tuple[np.ndarray, list[dict]]:
     if runs < 1:
         raise ValueError("runs must be positive")
-    rows, identities = [], []
+    rows, identities, frames = [], [], []
     for seed in range(start_seed, start_seed + runs):
         rng = np.random.default_rng(seed + 999999)
         faults = ()
@@ -47,10 +50,22 @@ def examples(start_seed: int, runs: int, kind: str = "normal") -> tuple[np.ndarr
             faults = (Fault("spike", 32, 1, magnitude), Fault("spike", 160, 1, magnitude))
         elif kind != "normal":
             raise ValueError(f"unknown model evaluation class: {kind}")
-        extracted = features(simulate(seed, samples=256, faults=faults))
+        frame = simulate(seed, samples=256, faults=faults)
+        frames.append(frame)
+        extracted = features(frame)
         rows.extend(extracted)
         identities.extend(dict(seed=seed, window=window, kind=kind, label=int(kind != "normal"))
                           for window in range(len(extracted)))
+    if daq is not None:
+        if output is None:
+            raise ValueError("an output directory is required for C acquisition")
+        # Runs keep their window boundaries; transport IDs form one continuous batch.
+        combined = pd.concat(frames, ignore_index=True)
+        combined["sequence"] = np.arange(len(combined), dtype=np.uint32)
+        combined["source_us"] = np.arange(len(combined), dtype=np.uint64) * 5000
+        log, _ = acquire(daq, encode_stream(combined), output)
+        cleaned, _ = clean_resample(pd.read_csv(log))
+        return features(cleaned), identities
     return np.asarray(rows, dtype=np.float32), identities
 
 
@@ -144,13 +159,14 @@ def latency_pair(runtimes: dict, inputs: np.ndarray, repeats: int = 500) -> dict
 
 
 def run_model_lab(output: Path, train_runs: int = 256, validation_runs: int = 64,
-                  test_runs: int = 128, epochs: int = 60, latency_repeats: int = 500) -> dict:
+                  test_runs: int = 128, epochs: int = 60, latency_repeats: int = 500,
+                  daq: Path | None = None) -> dict:
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     if train_runs > 10000 or validation_runs > 10000 or test_runs > 1000:
         raise ValueError("run counts would overlap reserved seed ranges")
-    training, _ = examples(0, train_runs)
-    validation, _ = examples(10000, validation_runs)
+    training, _ = examples(0, train_runs, daq=daq, output=output / "inputs/training")
+    validation, _ = examples(10000, validation_runs, daq=daq, output=output / "inputs/validation")
     started = time.perf_counter()
     model, mean, scale, training_report = train_autoencoder(training, validation, epochs)
     training_report["seconds"] = time.perf_counter() - started
@@ -183,7 +199,8 @@ def run_model_lab(output: Path, train_runs: int = 256, validation_runs: int = 64
     threshold = float(np.quantile(scores(runtimes["float"], val), 0.99))
     test_parts, identities = [], []
     for index, kind in enumerate(("normal", "stuck", "current_step", "vibration_shift", "spike")):
-        part, ids = examples(20000 + index * 1000, test_runs, kind)
+        part, ids = examples(20000 + index * 1000, test_runs, kind, daq,
+                             output / "inputs" / kind)
         test_parts.append(part)
         identities.extend(ids)
     inputs = ((np.concatenate(test_parts) - mean) / scale).astype(np.float32)
@@ -210,6 +227,7 @@ def run_model_lab(output: Path, train_runs: int = 256, validation_runs: int = 64
                 for index, row in enumerate(identities)]
     report = dict(
         training=training_report, parameter_count=sum(item.numel() for item in model.parameters()),
+        input_path="C11 DAQ CSV, cleaned and resampled" if daq else "direct simulated features",
         seed_ranges=dict(training=[0, train_runs - 1],
                          validation=[10000, 10000 + validation_runs - 1],
                          test_start_seeds=[20000, 21000, 22000, 23000, 24000],

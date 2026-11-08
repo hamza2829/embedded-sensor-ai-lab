@@ -53,6 +53,16 @@ def test_metrics_known_confusion_and_auc():
     assert metrics(np.zeros(3), np.zeros(3), 1)["roc_auc"] is None
 
 
+def test_model_features_follow_the_acquisition_chain(daq, tmp_path):
+    measured, ids = examples(50, 2, daq=daq, output=tmp_path)
+    reference, reference_ids = examples(50, 2)
+    np.testing.assert_allclose(measured, reference, rtol=1e-4, atol=1e-5)
+    assert ids == reference_ids
+    assert json.loads((tmp_path / "daq_stats.json").read_text())["accepted"] == 512
+    with pytest.raises(ValueError, match="output directory"):
+        examples(0, 1, daq=daq)
+
+
 def test_calibration_finishes_and_guards(tmp_path):
     reader = Calibration(np.zeros((2, 12), dtype=np.float32))
     assert reader.get_next()["features"].shape == (1, 12)

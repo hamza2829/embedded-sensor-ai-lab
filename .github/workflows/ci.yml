@@ -107,7 +107,7 @@ jobs:
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --parallel 2
       - run: sensor-ai-lab bench --daq build/src/daq/daq --output artifacts/measurements
-      - run: sensor-ai-lab train-export --output artifacts/model --epochs 60
+      - run: sensor-ai-lab train-export --daq build/src/daq/daq --output artifacts/model --epochs 60
       - run: python -m pip freeze > artifacts/environment.txt
       - uses: actions/upload-artifact@v4
         if: always()

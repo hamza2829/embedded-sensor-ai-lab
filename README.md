@@ -49,7 +49,7 @@ sensor-ai-lab simulate --seed 123 --samples 2048 --output runs/frames.bin
 build/src/daq/daq --input runs/frames.bin --output runs/samples.csv --stats runs/daq.json
 sensor-ai-lab analyze runs/samples.csv --stats runs/daq.json --output runs/analysis
 sensor-ai-lab bench --daq build/src/daq/daq --output runs/bench
-sensor-ai-lab train-export --output runs/model --epochs 60
+sensor-ai-lab train-export --daq build/src/daq/daq --output runs/model --epochs 60
 
 ruff check .
 pytest --cov --cov-report=term-missing
@@ -126,6 +126,11 @@ a general anti-aliasing filter. The report's plots use matplotlib's headless Agg
 The autoencoder has 12 inputs and layers 12, 64, 4, 64, 12 with ReLU hidden activations.
 Training uses normal examples only, Adam at 0.003, one CPU thread, seed 42, and 60 epochs.
 Each seeded run has 256 samples and yields two independent non-overlapping windows.
+Model inputs pass through the binary encoder, actual C collector, CSV reader, cleaning,
+and resampling before feature extraction. Runs are batched with continuous transport
+sequence IDs and timestamps while preserving window boundaries and original seed identities.
+The workflow artifacts retain these acquisition logs. Direct simulated feature generation
+is also available internally for unit comparison against the C path.
 Training uses 256 runs with seeds 0 through 255; validation uses 64 runs with seeds
 10000 through 10063. Feature normalization is fitted only on training data. The
 checkpoint with the lowest normal validation reconstruction loss is exported.

@@ -16,7 +16,8 @@ def test_cli_bench_and_model_dispatch(monkeypatch, tmp_path, exported):
     monkeypatch.setattr("sensor_ai_lab.cli.run_bench", lambda *args: {"passed": True})
     monkeypatch.setattr("sensor_ai_lab.cli.run_model_lab", lambda *args, **kwargs: exported[1])
     assert main(["bench", "--daq", "/unused", "--output", str(tmp_path)]) == 0
-    assert main(["train-export", "--output", str(tmp_path), "--epochs", "2"]) == 0
+    assert main(["train-export", "--daq", "/unused", "--output", str(tmp_path),
+                 "--epochs", "2"]) == 0
 
 
 def test_cli_error_message(tmp_path, capsys):

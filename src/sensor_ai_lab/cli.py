@@ -26,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     bench.add_argument("--output", type=Path, required=True)
     bench.add_argument("--seed", type=int, default=123)
     training = commands.add_parser("train-export")
+    training.add_argument("--daq", type=Path, required=True)
     training.add_argument("--output", type=Path, required=True)
     training.add_argument("--epochs", type=int, default=60)
     args = parser.parse_args(argv)
@@ -39,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "bench":
             print(json.dumps(run_bench(args.daq, args.output, args.seed), indent=2))
         else:
-            result = run_model_lab(args.output, epochs=args.epochs)
+            result = run_model_lab(args.output, epochs=args.epochs, daq=args.daq)
             print(json.dumps({key: value for key, value in result.items()
                               if key not in {"outcomes", "training"}}, indent=2))
     except (ValueError, OSError) as exc:
